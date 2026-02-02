@@ -1,0 +1,13 @@
+{
+  "collectCoverage": true,
+  "collectCoverageFrom": [
+    "src/**/*.js",
+    "!src/database/**"
+  ],
+  "coverageReporters": ["json-summary", "text"],
+  "coverageThreshold": {
+    "global": {
+      "lines": 80
+    }
+  }
+  }
