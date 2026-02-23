@@ -64,6 +64,20 @@ const DB = {
   },
 
   // User
+  async listUsers(_authUser, page = 0, limit = 10, nameFilter = '*') {
+    let all = Array.from(state.usersById.values()).map((u) => sanitizeUser(u));
+    if (nameFilter && nameFilter !== '*') {
+      const pattern = nameFilter.replace(/\*/g, '.*');
+      const re = new RegExp(pattern, 'i');
+      all = all.filter((u) => re.test(u.name || '') || re.test(u.email || ''));
+    }
+    const start = Number(page) * Number(limit) || 0;
+    const end = start + (Number(limit) || 10);
+    const slice = all.slice(start, end);
+    const more = all.length > end;
+    return [slice, more];
+  },
+
   async updateUser(userId, name, email, password) {
     const existing = state.usersById.get(userId);
     if (!existing) throw new Error('user not found');

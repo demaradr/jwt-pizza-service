@@ -90,14 +90,79 @@ test('updateUser - unauthorized', async () => {
   expect(res.body.message).toBe('unauthorized');
 });
 
-test('listUsers - not implemented', async () => {
-  const res = await request(app).get('/api/user').set('Authorization', `Bearer ${testUserAuthToken}`);
-  expect(res.status).toBe(200);
-  expect(res.body.message).toBe('not implemented');
+test('list users unauthorized', async () => {
+  const listUsersRes = await request(app).get('/api/user');
+  expect(listUsersRes.status).toBe(401);
 });
 
-test('deleteUser - not implemented', async () => {
-  const res = await request(app).delete(`/api/user/${testUser.id}`).set('Authorization', `Bearer ${testUserAuthToken}`);
+test('list users', async () => {
+  const listUsersRes = await request(app)
+    .get('/api/user')
+    .set('Authorization', 'Bearer ' + adminAuthToken);
+  expect(listUsersRes.status).toBe(200);
+  expect(listUsersRes.body.users).toBeDefined();
+  expect(listUsersRes.body.more).toBeDefined();
+});
+
+test('list users - pagination', async () => {
+  const res = await request(app)
+    .get('/api/user?page=0&limit=2')
+    .set('Authorization', 'Bearer ' + adminAuthToken);
   expect(res.status).toBe(200);
-  expect(res.body.message).toBe('not implemented');
+  expect(res.body.users.length).toBeLessThanOrEqual(2);
+  expect(res.body.more).toBeDefined();
+});
+
+test('list users - name filter', async () => {
+  const res = await request(app)
+    .get('/api/user?name=' + encodeURIComponent(adminUser.name))
+    .set('Authorization', 'Bearer ' + adminAuthToken);
+  expect(res.status).toBe(200);
+  expect(res.body.users).toBeDefined();
+  const found = res.body.users.find((u) => u.name === adminUser.name);
+  expect(found).toBeDefined();
+});
+
+test('deleteUser - unauthorized (no token)', async () => {
+  const res = await request(app).delete(`/api/user/${testUser.id}`);
+  expect(res.status).toBe(401);
+});
+
+test('deleteUser - admin can delete another user', async () => {
+  const victim = { name: randomName(), email: randomName() + '@del.com', password: 'p' };
+  const registerRes = await request(app).post('/api/auth').send(victim);
+  const victimId = registerRes.body.user.id;
+
+  const res = await request(app)
+    .delete(`/api/user/${victimId}`)
+    .set('Authorization', 'Bearer ' + adminAuthToken);
+  expect(res.status).toBe(200);
+
+  const getRes = await request(app).get('/api/user/me').set('Authorization', 'Bearer ' + registerRes.body.token);
+  expect(getRes.status).toBe(401);
+});
+
+test('deleteUser - user can delete self', async () => {
+  const self = { name: randomName(), email: randomName() + '@self.com', password: 'p' };
+  const registerRes = await request(app).post('/api/auth').send(self);
+  const token = registerRes.body.token;
+  const selfId = registerRes.body.user.id;
+
+  const res = await request(app).delete(`/api/user/${selfId}`).set('Authorization', 'Bearer ' + token);
+  expect(res.status).toBe(200);
+
+  const getRes = await request(app).get('/api/user/me').set('Authorization', 'Bearer ' + token);
+  expect(getRes.status).toBe(401);
+});
+
+test('deleteUser - non-admin cannot delete another user', async () => {
+  const res = await request(app)
+    .delete(`/api/user/${testUser.id}`)
+    .set('Authorization', 'Bearer ' + testUserAuthToken);
+  const otherUser = { name: randomName(), email: randomName() + '@other.com', password: 'p' };
+  const otherRes = await request(app).post('/api/auth').send(otherUser);
+  const deleteRes = await request(app)
+    .delete(`/api/user/${testUser.id}`)
+    .set('Authorization', 'Bearer ' + otherRes.body.token);
+  expect(deleteRes.status).toBe(403);
 });
