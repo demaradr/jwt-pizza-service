@@ -78,6 +78,14 @@ const DB = {
     return [slice, more];
   },
 
+  async deleteUser(userId) {
+    const existing = state.usersById.get(userId);
+    if (existing?.email) state.usersByEmail.delete(existing.email);
+    state.usersById.delete(userId);
+    const tokensToRemove = [...state.loggedInTokens.entries()].filter(([, uid]) => uid === userId).map(([t]) => t);
+    tokensToRemove.forEach((t) => state.loggedInTokens.delete(t));
+  },
+
   async updateUser(userId, name, email, password) {
     const existing = state.usersById.get(userId);
     if (!existing) throw new Error('user not found');
