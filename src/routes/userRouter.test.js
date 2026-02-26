@@ -156,9 +156,6 @@ test('deleteUser - user can delete self', async () => {
 });
 
 test('deleteUser - non-admin cannot delete another user', async () => {
-  const res = await request(app)
-    .delete(`/api/user/${testUser.id}`)
-    .set('Authorization', 'Bearer ' + testUserAuthToken);
   const otherUser = { name: randomName(), email: randomName() + '@other.com', password: 'p' };
   const otherRes = await request(app).post('/api/auth').send(otherUser);
   const deleteRes = await request(app)
