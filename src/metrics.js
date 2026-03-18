@@ -128,8 +128,8 @@ function pizzaPurchase(success, latencyMs, revenueDollars) {
 }
 
 function sendMetricsPeriodically(periodMs = 10000) {
-  if (!enabled) return;
-  const timer = setInterval(() => {
+  if (!enabled) return undefined;
+  return setInterval(() => {
     try {
       const metrics = [];
 
