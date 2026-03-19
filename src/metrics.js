@@ -1,7 +1,7 @@
 const os = require('os');
 const config = require('./config.js');
 
-const cfg = config.metrics || {};
+const cfg = config.metrics || config.factory?.metrics || {};
 const enabled = Boolean(cfg.endpointUrl && cfg.accountId && cfg.apiKey && cfg.source);
 
 const counts = {

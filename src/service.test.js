@@ -1,4 +1,5 @@
 const request = require('supertest');
+jest.mock('./database/database.js');
 const app = require('./service');
 
 test('root endpoint', async () => {
