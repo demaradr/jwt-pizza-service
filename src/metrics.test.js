@@ -4,7 +4,6 @@ const metrics = require('./metrics');
 
 describe('metrics', () => {
   beforeEach(() => {
-    jest.useFakeTimers();
     global.fetch = jest.fn(async () => ({
       ok: true,
       text: async () => '',
@@ -12,8 +11,6 @@ describe('metrics', () => {
   });
 
   afterEach(() => {
-    jest.runOnlyPendingTimers();
-    jest.useRealTimers();
     jest.clearAllMocks();
   });
 
@@ -29,14 +26,18 @@ describe('metrics', () => {
   });
 
   test('sendMetricsPeriodically builds payload and sends via fetch', async () => {
-    const timer = metrics.sendMetricsPeriodically(10);
+    const setIntervalSpy = jest.spyOn(global, 'setInterval').mockImplementation((cb) => {
+      // Run exactly one cycle immediately; we don't want to depend on fake timers.
+      cb();
+      return 1;
+    });
 
-    await jest.advanceTimersByTimeAsync(10);
+    metrics.sendMetricsPeriodically(10);
     await Promise.resolve();
 
     expect(global.fetch).toHaveBeenCalled();
 
-    clearInterval(timer);
+    setIntervalSpy.mockRestore();
   });
 });
 
