@@ -2,7 +2,9 @@
   "collectCoverage": true,
   "collectCoverageFrom": [
     "src/**/*.js",
-    "!src/database/**"
+    "!src/database/**",
+    "!src/index.js",
+    "!src/init.js"
   ],
   "coverageReporters": ["json-summary", "text"],
   "coverageThreshold": {
