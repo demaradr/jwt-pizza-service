@@ -62,26 +62,51 @@ class Logger {
   }
 
   sanitize(logData) {
-    // Return JSON as a string (Grafana expects the log line as a string).
-    const json = typeof logData === 'string' ? logData : JSON.stringify(logData);
-    const bs = '\\';
-    const dq = '"';
-    const escapedPasswordReplacement = `${bs}${dq}password${bs}${dq}:${bs}${dq}*****${bs}${dq}`;
-    const escapedTokenReplacement = `${bs}${dq}token${bs}${dq}:${bs}${dq}*****${bs}${dq}`;
-    const escapedJwtReplacement = `${bs}${dq}jwt${bs}${dq}:${bs}${dq}*****${bs}${dq}`;
+    const redacted = this.redactValue(logData);
+    return typeof redacted === 'string' ? redacted : JSON.stringify(redacted);
+  }
 
-    // Minimal redaction:
-    // - passwords and tokens/JWTs
-    // - SQL password='...' patterns
-    return json
-      .replace(/"password"\s*:\s*"[^"]*"/gi, '"password":"*****"')
-      .replace(/"token"\s*:\s*"[^"]*"/gi, '"token":"*****"')
-      .replace(/"jwt"\s*:\s*"[^"]*"/gi, '"jwt":"*****"')
-      .replace(/\\"password\\"\\s*:\\s*\\"[^\\"]*\\"/gi, escapedPasswordReplacement)
-      .replace(/\\"token\\"\\s*:\\s*\\"[^\\"]*\\"/gi, escapedTokenReplacement)
-      .replace(/\\"jwt\\"\\s*:\\s*\\"[^\\"]*\\"/gi, escapedJwtReplacement)
-      .replace(/password\s*=\s*'[^']*'/gi, "password='*****'")
-      .replace(/token\s*=\s*'[^']*'/gi, "token='*****'");
+  redactValue(value) {
+    if (value === null || value === undefined) return value;
+
+    if (Array.isArray(value)) {
+      return value.map((item) => this.redactValue(item));
+    }
+
+    if (typeof value === 'object') {
+      const out = {};
+      for (const [key, val] of Object.entries(value)) {
+        if (this.isSensitiveKey(key)) {
+          out[key] = '*****';
+        } else {
+          out[key] = this.redactValue(val);
+        }
+      }
+      return out;
+    }
+
+    if (typeof value === 'string') {
+      let text = value
+        .replace(/(password|token|jwt|api[_-]?key|authorization|secret)\s*=\s*'[^']*'/gi, "$1='*****'")
+        .replace(/(password|token|jwt|api[_-]?key|authorization|secret)\s*=\s*"[^"]*"/gi, '$1="*****"');
+
+      try {
+        const parsed = JSON.parse(text);
+        if (parsed && typeof parsed === 'object') {
+          return JSON.stringify(this.redactValue(parsed));
+        }
+      } catch {
+        return text;
+      }
+
+      return text;
+    }
+
+    return value;
+  }
+
+  isSensitiveKey(key) {
+    return /password|token|jwt|api[_-]?key|authorization|secret/i.test(key);
   }
 
   sendLogToGrafana(event) {
