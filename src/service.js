@@ -6,9 +6,11 @@ const userRouter = require('./routes/userRouter.js');
 const version = require('./version.json');
 const config = require('./config.js');
 const metrics = require('./metrics.js');
+const logger = require('./logger.js');
 
 const app = express();
 app.use(express.json());
+app.use(logger.httpLogger);
 app.use(setAuthUser);
 app.use(metrics.requestTracker);
 app.use((req, res, next) => {
@@ -49,8 +51,20 @@ app.use('*', (req, res) => {
 
 // Default error handler for all exceptions and errors.
 app.use((err, req, res, next) => {
+  logger.log('error', 'exception', { message: err?.message, stack: err?.stack });
   res.status(err.statusCode ?? 500).json({ message: err.message, stack: err.stack });
   next();
 });
+
+// Capture truly unhandled exceptions/promises (not just Express route errors).
+if (!global.__jwtPizzaLoggerProcessHandlersInstalled) {
+  global.__jwtPizzaLoggerProcessHandlersInstalled = true;
+  process.on('unhandledRejection', (reason) => {
+    logger.log('error', 'exception', { unhandledRejection: String(reason) });
+  });
+  process.on('uncaughtException', (err) => {
+    logger.log('error', 'exception', { message: err?.message, stack: err?.stack });
+  });
+}
 
 module.exports = app;
