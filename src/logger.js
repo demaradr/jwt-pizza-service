@@ -64,6 +64,11 @@ class Logger {
   sanitize(logData) {
     // Return JSON as a string (Grafana expects the log line as a string).
     const json = typeof logData === 'string' ? logData : JSON.stringify(logData);
+    const bs = '\\';
+    const dq = '"';
+    const escapedPasswordReplacement = `${bs}${dq}password${bs}${dq}:${bs}${dq}*****${bs}${dq}`;
+    const escapedTokenReplacement = `${bs}${dq}token${bs}${dq}:${bs}${dq}*****${bs}${dq}`;
+    const escapedJwtReplacement = `${bs}${dq}jwt${bs}${dq}:${bs}${dq}*****${bs}${dq}`;
 
     // Minimal redaction:
     // - passwords and tokens/JWTs
@@ -72,9 +77,9 @@ class Logger {
       .replace(/"password"\s*:\s*"[^"]*"/gi, '"password":"*****"')
       .replace(/"token"\s*:\s*"[^"]*"/gi, '"token":"*****"')
       .replace(/"jwt"\s*:\s*"[^"]*"/gi, '"jwt":"*****"')
-      .replace(/\\\"password\\\"\\s*:\\s*\\\"[^\\\"]*\\\"/gi, '\\"password\\":\\"*****\\"')
-      .replace(/\\\"token\\\"\\s*:\\s*\\\"[^\\\"]*\\\"/gi, '\\"token\\":\\"*****\\"')
-      .replace(/\\\"jwt\\\"\\s*:\\s*\\\"[^\\\"]*\\\"/gi, '\\"jwt\\":\\"*****\\"')
+      .replace(/\\"password\\"\\s*:\\s*\\"[^\\"]*\\"/gi, escapedPasswordReplacement)
+      .replace(/\\"token\\"\\s*:\\s*\\"[^\\"]*\\"/gi, escapedTokenReplacement)
+      .replace(/\\"jwt\\"\\s*:\\s*\\"[^\\"]*\\"/gi, escapedJwtReplacement)
       .replace(/password\s*=\s*'[^']*'/gi, "password='*****'")
       .replace(/token\s*=\s*'[^']*'/gi, "token='*****'");
   }
