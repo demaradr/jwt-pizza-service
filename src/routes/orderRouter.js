@@ -91,7 +91,7 @@ orderRouter.post(
     const latencyMs = Date.now() - start;
     const j = await r.json();
 
-    logger.log(r.ok ? 'info' : 'error', 'factory', { reqBody: factoryReqBody, resBody: j });
+    logger.log(r.ok ? 'info' : 'error', 'factory', { reqBody: JSON.stringify(factoryReqBody), resBody: JSON.stringify(j) });
 
     const revenue = (order.items || []).reduce((sum, item) => sum + (Number(item.price) || 0), 0);
     if (r.ok) {

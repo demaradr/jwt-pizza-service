@@ -16,13 +16,16 @@ class Logger {
 
     // Wrap `res.send` so `res.json(...)` is also captured (Express `res.json` uses `res.send` internally).
     res.send = (resBody) => {
+      const reqBodyString = req.body === undefined ? undefined : JSON.stringify(req.body);
+      const resBodyString = typeof resBody === 'string' ? resBody : JSON.stringify(resBody);
+
       const logData = {
         authorized: !!req.headers.authorization,
         method: req.method,
         path: req.originalUrl,
         statusCode: res.statusCode,
-        reqBody: req.body,
-        resBody: resBody,
+        reqBody: reqBodyString,
+        resBody: resBodyString,
       };
 
       const level = this.statusToLogLevel(res.statusCode);
@@ -69,6 +72,9 @@ class Logger {
       .replace(/"password"\s*:\s*"[^"]*"/gi, '"password":"*****"')
       .replace(/"token"\s*:\s*"[^"]*"/gi, '"token":"*****"')
       .replace(/"jwt"\s*:\s*"[^"]*"/gi, '"jwt":"*****"')
+      .replace(/\\\"password\\\"\\s*:\\s*\\\"[^\\\"]*\\\"/gi, '\\"password\\":\\"*****\\"')
+      .replace(/\\\"token\\\"\\s*:\\s*\\\"[^\\\"]*\\\"/gi, '\\"token\\":\\"*****\\"')
+      .replace(/\\\"jwt\\\"\\s*:\\s*\\\"[^\\\"]*\\\"/gi, '\\"jwt\\":\\"*****\\"')
       .replace(/password\s*=\s*'[^']*'/gi, "password='*****'")
       .replace(/token\s*=\s*'[^']*'/gi, "token='*****'");
   }
