@@ -163,3 +163,45 @@ test('getOrders - with page parameter', async () => {
   expect(res.body).toHaveProperty('dinerId');
   expect(res.body).toHaveProperty('orders');
 });
+
+afterEach(async () => {
+  await request(app).put('/api/order/chaos/false').set('Authorization', `Bearer ${adminAuthToken}`);
+});
+
+test('chaos endpoint - admin can toggle', async () => {
+  const on = await request(app).put('/api/order/chaos/true').set('Authorization', `Bearer ${adminAuthToken}`);
+  expect(on.status).toBe(200);
+  expect(on.body).toEqual({ chaos: true });
+
+  const off = await request(app).put('/api/order/chaos/false').set('Authorization', `Bearer ${adminAuthToken}`);
+  expect(off.status).toBe(200);
+  expect(off.body).toEqual({ chaos: false });
+});
+
+test('chaos endpoint - non-admin cannot enable chaos', async () => {
+  await request(app).put('/api/order/chaos/false').set('Authorization', `Bearer ${adminAuthToken}`);
+
+  const res = await request(app).put('/api/order/chaos/true').set('Authorization', `Bearer ${testUserAuthToken}`);
+  expect(res.status).toBe(200);
+  expect(res.body).toEqual({ chaos: false });
+});
+
+test('createOrder - chaos monkey returns 500 when enabled', async () => {
+  const menuRes = await request(app).get('/api/order/menu');
+  const menuItems = menuRes.body;
+  const order = {
+    franchiseId: testFranchise.id,
+    storeId: testStore.id,
+    items: [{ menuId: menuItems[0].id, description: menuItems[0].title, price: menuItems[0].price }],
+  };
+
+  await request(app).put('/api/order/chaos/true').set('Authorization', `Bearer ${adminAuthToken}`);
+
+  const randomSpy = jest.spyOn(Math, 'random').mockReturnValue(0.1);
+
+  const res = await request(app).post('/api/order').set('Authorization', `Bearer ${testUserAuthToken}`).send(order);
+  expect(res.status).toBe(500);
+  expect(res.body.message).toBe('Chaos monkey');
+
+  randomSpy.mockRestore();
+});
